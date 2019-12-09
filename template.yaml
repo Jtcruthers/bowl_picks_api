@@ -2,7 +2,23 @@ AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description:  bowl_picker_backend
 
+Parameters:
+  ZipBucket:
+    Type: String
+    Default: jtcruthers-lambda-zipfiles
+
 Resources:
+
+  GetBowlPicks:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetterPickers
+      Handler: get_picks.lambda_handler
+      Role: !GetAtt GetBowlPicksRole.Arn
+      Runtime: python3.8
+      Code:
+        S3Bucket: !Ref ZipBucket
+        S3Key: get_picks.zip
 
   GetBowlPicksRole:
     Type: AWS::IAM::Role
@@ -26,6 +42,17 @@ Resources:
             - dynamodb:GetItem
             - dynamodb:Scan
             Resource: arn:aws:dynamodb:us-east-2:291992694103:table/bowl-picks
+
+  SaveBowlPicks:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: SaveBowlPicks
+      Handler: save_picks.lambda_handler
+      Role: !GetAtt SaveBowlPicksRole.Arn
+      Runtime: python3.8
+      Code:
+        S3Bucket: !Ref ZipBucket
+        S3Key: get_picks.zip
 
   SaveBowlPicksRole:
     Type: AWS::IAM::Role
