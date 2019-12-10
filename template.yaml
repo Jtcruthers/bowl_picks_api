@@ -12,7 +12,7 @@ Resources:
   GetBowlPicks:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: GetterPickers
+      FunctionName: GetBowlPicks
       Handler: get_picks.lambda_handler
       Role: !GetAtt GetBowlPicksRole.Arn
       Runtime: python3.8
@@ -89,3 +89,67 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
+
+  BowlPicksRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "bowl-picker-api"
+      Description: "Bowl Picker API"
+
+  GetPicksApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: get_picks
+      ParentId: !GetAtt BowlPicksRestApi.RootResourceId
+      RestApiId: !Ref BowlPicksRestApi
+
+  GetPicksApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        IntegrationHttpMethod: GET
+        Type: AWS
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt GetBowlPicks.Arn
+      ResourceId: !Ref GetPicksApiResource
+      RestApiId: !Ref BowlPicksRestApi
+
+  SavePicksApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: save_picks
+      ParentId: !GetAtt BowlPicksRestApi.RootResourceId
+      RestApiId: !Ref BowlPicksRestApi
+
+  SavePicksApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt SaveBowlPicks.Arn
+      ResourceId: !Ref SavePicksApiResource
+      RestApiId: !Ref BowlPicksRestApi
+
+  BowlPicksBetaStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: "beta"
+      DeploymentId: !Ref BowlPicksDeployment
+      RestApiId: !Ref BowlPicksRestApi
+
+  BowlPicksDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref BowlPicksRestApi
+      StageName: "beta"
+    DependsOn:
+      - GetPicksApiMethod
+      - SavePicksApiMethod
